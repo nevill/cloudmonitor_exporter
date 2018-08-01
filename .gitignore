@@ -1,0 +1,8 @@
+.DS_Store
+/cloudmonitor_exporter
+*.o
+*.a
+*.so
+*~
+*#
+.credential

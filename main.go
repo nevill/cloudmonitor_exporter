@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -9,6 +10,8 @@ import (
 )
 
 var (
+	config = getConfigFromEnv()
+
 	snatMetrics = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "snat",
@@ -23,7 +26,6 @@ var (
 )
 
 func newCmsClient() *cms.Client {
-	config := getConfigFromEnv()
 	cmsClient, err := cms.NewClientWithAccessKey(
 		config.Region,
 		config.AccessKeyId,
@@ -39,7 +41,14 @@ func newCmsClient() *cms.Client {
 
 func start() {
 	http.Handle("/metrics", prometheus.Handler())
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	listenAddress := config.ListenAddress
+	if len(listenAddress) == 0 {
+		listenAddress = ":8080"
+	}
+
+	log.Fatal(http.ListenAndServe(listenAddress, nil))
+	fmt.Println("Running on ", listenAddress)
 }
 
 func init() {

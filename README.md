@@ -7,3 +7,9 @@
 go get -u github.com/aliyun/alibaba-cloud-sdk-go/sdk
 go build
 ```
+
+# License
+
+Apache License 2.0
+
+Same to `alibaba-cloud-sdk-go`

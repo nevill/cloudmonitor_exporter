@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -10,19 +9,8 @@ import (
 )
 
 var (
-	config = getConfigFromEnv()
-
-	snatMetrics = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: "snat",
-			Subsystem: "gateway",
-			Name:      "max_connections",
-			Help:      "Max number of snat connections per minute",
-		},
-		[]string{
-			"id", // instance id
-		},
-	)
+	config   = getConfigFromEnv()
+	exporter = NewExporter()
 )
 
 func newCmsClient() *cms.Client {
@@ -40,28 +28,22 @@ func newCmsClient() *cms.Client {
 }
 
 func start() {
-	http.Handle("/metrics", prometheus.Handler())
-
 	listenAddress := config.ListenAddress
 	if len(listenAddress) == 0 {
 		listenAddress = ":8080"
 	}
 
+	log.Println("Running on ", listenAddress)
+
+	http.Handle("/metrics", prometheus.Handler())
 	log.Fatal(http.ListenAndServe(listenAddress, nil))
-	fmt.Println("Running on ", listenAddress)
 }
 
 func init() {
 	// register metrics to Prometheus
-	prometheus.MustRegister(snatMetrics)
+	prometheus.MustRegister(exporter)
 }
 
 func main() {
-	client := newCmsClient()
-
-	for _, point := range retrieveSnatConn(client) {
-		snatMetrics.WithLabelValues(point.InstanceId).Set(float64(point.Maximum))
-	}
-
 	start()
 }

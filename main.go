@@ -10,7 +10,7 @@ import (
 
 var (
 	config   = getConfigFromEnv()
-	exporter = NewExporter()
+	exporter = NewExporter(newCmsClient())
 )
 
 func newCmsClient() *cms.Client {

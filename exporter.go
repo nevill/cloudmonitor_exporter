@@ -13,14 +13,33 @@ const (
 
 // CloudmonitorExporter collects metrics from Aliyun via cms API
 type CloudmonitorExporter struct {
-	client          *cms.Client
-	snatConnections *prometheus.Desc
+	client *cms.Client
+
+	netTxRate        *prometheus.Desc
+	netTxRatePercent *prometheus.Desc
+	snatConnections  *prometheus.Desc
 }
 
 // NewExporter instantiate an CloudmonitorExport
 func NewExporter(c *cms.Client) *CloudmonitorExporter {
 	return &CloudmonitorExporter{
 		client: c,
+		netTxRate: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "net_tx_rate", "bytes"),
+			"Outbound bandwith of gateway in bits/s",
+			[]string{
+				"id", // instance id
+			},
+			nil,
+		),
+		netTxRatePercent: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "net_tx_rate", "percent"),
+			"Outbound bandwith of gateway used in percentage",
+			[]string{
+				"id", // instance id
+			},
+			nil,
+		),
 		snatConnections: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "snat", "connections"),
 			"Max number of snat connections per minute",
@@ -35,15 +54,35 @@ func NewExporter(c *cms.Client) *CloudmonitorExporter {
 // Describe describes all the metrics exported by the cloudmonitor exporter.
 // It implements prometheus.Collector.
 func (e *CloudmonitorExporter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- e.netTxRate
+	ch <- e.netTxRatePercent
 	ch <- e.snatConnections
 }
 
 // Collect fetches the metrics from Aliyun cms
 // It implements prometheus.Collector.
 func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
-	project := NewNatGateway(e.client)
+	natGateway := NewNatGateway(e.client)
 
-	for _, point := range project.retrieveSnatConn() {
+	for _, point := range natGateway.retrieveNetTxRate() {
+		ch <- prometheus.MustNewConstMetric(
+			e.netTxRate,
+			prometheus.GaugeValue,
+			float64(point.Value),
+			point.InstanceId,
+		)
+	}
+
+	for _, point := range natGateway.retrieveNetTxRatePercent() {
+		ch <- prometheus.MustNewConstMetric(
+			e.netTxRatePercent,
+			prometheus.GaugeValue,
+			float64(point.Value),
+			point.InstanceId,
+		)
+	}
+
+	for _, point := range natGateway.retrieveSnatConn() {
 		ch <- prometheus.MustNewConstMetric(
 			e.snatConnections,
 			prometheus.GaugeValue,
@@ -51,7 +90,6 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			point.InstanceId,
 		)
 	}
-
 }
 
 // datapoint represents the member of Datapoints field from QueryMetricLastResponse

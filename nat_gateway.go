@@ -12,10 +12,14 @@ func NewNatGateway(c *cms.Client) *Project {
 	}
 }
 
-func (p *Project) retrieveSnatConn() []datapoint {
-	return p.retrieve("SnatConnection")
+func (p *Project) retrieveNetTxRate() []datapoint {
+	return p.retrieve("net_tx.rate")
 }
 
-func (p *Project) retrieveNetRx() []datapoint {
-	return p.retrieve("net_tx.rate")
+func (p *Project) retrieveNetTxRatePercent() []datapoint {
+	return p.retrieve("net_tx.ratePercent")
+}
+
+func (p *Project) retrieveSnatConn() []datapoint {
+	return p.retrieve("SnatConnection")
 }

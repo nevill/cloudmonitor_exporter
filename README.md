@@ -10,6 +10,11 @@ go get -u github.com/aliyun/alibaba-cloud-sdk-go/sdk
 go build
 ```
 
+
+# API Reference
+1. https://help.aliyun.com/document_detail/28617.html
+2. https://help.aliyun.com/document_detail/51939.html
+
 # License
 
 Apache License 2.0

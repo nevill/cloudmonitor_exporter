@@ -103,23 +103,30 @@ type datapoint struct {
 	UserId     string  `json:"userId"`
 }
 
+// GetResponseFunc returns a function to retrieve queryMetricLast
+type GetResponseFunc func(client *cms.Client, request *cms.QueryMetricLastRequest) string
+
 // Project represents the dashborad from which metrics collected
 type Project struct {
-	client *cms.Client
-	Name   string
+	client      *cms.Client
+	getResponse GetResponseFunc
+	Name        string
 }
 
-func (p *Project) retrieve(name string) []datapoint {
-	request := cms.CreateQueryMetricLastRequest()
-	request.Project = p.Name
-	request.Metric = name
-	response, err := p.client.QueryMetricLast(request)
-
+func defaultGetResponseFunc(client *cms.Client, request *cms.QueryMetricLastRequest) string {
+	response, err := client.QueryMetricLast(request)
 	if err != nil {
 		panic(err)
 	}
+	return response.Datapoints
+}
 
-	source := response.Datapoints
+func (p *Project) retrieve(metric string) []datapoint {
+	request := cms.CreateQueryMetricLastRequest()
+	request.Project = p.Name
+	request.Metric = metric
+	source := p.getResponse(p.client, request)
+
 	datapoints := make([]datapoint, 10)
 	if err := json.Unmarshal([]byte(source), &datapoints); err != nil {
 		panic(err)

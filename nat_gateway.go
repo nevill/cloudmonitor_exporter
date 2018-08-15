@@ -7,8 +7,9 @@ import (
 // NewNatGateway returns a project respresents acs_nat_gateway
 func NewNatGateway(c *cms.Client) *Project {
 	return &Project{
-		client: c,
-		Name:   "acs_nat_gateway",
+		client:      c,
+		getResponse: defaultGetResponseFunc,
+		Name:        "acs_nat_gateway",
 	}
 }
 

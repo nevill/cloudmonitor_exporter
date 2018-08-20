@@ -125,6 +125,8 @@ func (p *Project) retrieve(metric string) []datapoint {
 	request := cms.CreateQueryMetricLastRequest()
 	request.Project = p.Name
 	request.Metric = metric
+
+	requestsStats.Inc()
 	source := p.getResponse(p.client, request)
 
 	datapoints := make([]datapoint, 10)

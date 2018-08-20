@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 	"github.com/prometheus/client_golang/prometheus"
@@ -113,12 +114,14 @@ type Project struct {
 	Name        string
 }
 
-func defaultGetResponseFunc(client *cms.Client, request *cms.QueryMetricLastRequest) string {
+func defaultGetResponseFunc(client *cms.Client, request *cms.QueryMetricLastRequest) (result string) {
 	response, err := client.QueryMetricLast(request)
 	if err != nil {
-		panic(err)
+		log.Println("Encounter response error from Aliyun:", err)
+		result = "[]"
 	}
-	return response.Datapoints
+	result = response.Datapoints
+	return
 }
 
 func (p *Project) retrieve(metric string) []datapoint {

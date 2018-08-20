@@ -11,8 +11,16 @@ var (
 			Help: "The total number of cloudmonitor requests sent to Aliyun.",
 		},
 	)
+
+	responseError = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "cloudmonitor_exporter_error_response_total",
+			Help: "The total number response from Aliyun returned with error.",
+		},
+	)
 )
 
 func init() {
 	prometheus.MustRegister(requestsStats)
+	prometheus.MustRegister(responseError)
 }

@@ -1,9 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"log"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -16,20 +13,43 @@ const (
 type CloudmonitorExporter struct {
 	client *cms.Client
 
+	// nat gateway
 	netTxRate        *prometheus.Desc
 	netTxRatePercent *prometheus.Desc
 	snatConnections  *prometheus.Desc
+
+	// slb dashbaord
+	activeConnection *prometheus.Desc
+	packetRX         *prometheus.Desc
+	packetTX         *prometheus.Desc
+	trafficRX        *prometheus.Desc
+	trafficTX        *prometheus.Desc
+	newConnection    *prometheus.Desc
+	maxConnection    *prometheus.Desc
+	dropConnection   *prometheus.Desc
+	dropPacketRX     *prometheus.Desc
+	dropPacketTX     *prometheus.Desc
+	dropTrafficRX    *prometheus.Desc
+	dropTrafficTX    *prometheus.Desc
+	qps              *prometheus.Desc
+	rt               *prometheus.Desc
+	statusCode5xx    *prometheus.Desc
+	upstreamCode4xx  *prometheus.Desc
+	upstreamCode5xx  *prometheus.Desc
+	upstreamRt       *prometheus.Desc
 }
 
 // NewExporter instantiate an CloudmonitorExport
 func NewExporter(c *cms.Client) *CloudmonitorExporter {
 	return &CloudmonitorExporter{
 		client: c,
+
+		// nat gateway
 		netTxRate: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "net_tx_rate", "bytes"),
 			"Outbound bandwith of gateway in bits/s",
 			[]string{
-				"id", // instance id
+				"id",
 			},
 			nil,
 		),
@@ -37,7 +57,7 @@ func NewExporter(c *cms.Client) *CloudmonitorExporter {
 			prometheus.BuildFQName(namespace, "net_tx_rate", "percent"),
 			"Outbound bandwith of gateway used in percentage",
 			[]string{
-				"id", // instance id
+				"id",
 			},
 			nil,
 		),
@@ -45,7 +65,74 @@ func NewExporter(c *cms.Client) *CloudmonitorExporter {
 			prometheus.BuildFQName(namespace, "snat", "connections"),
 			"Max number of snat connections per minute",
 			[]string{
-				"id", // instance id
+				"id",
+			},
+			nil,
+		),
+
+		// slb dashboard
+		activeConnection: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "slb", "active_connection"),
+			"Number of active connections per minute",
+			[]string{
+				"id",
+				"port",
+				"vip",
+			},
+			nil,
+		),
+
+		packetRX: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "slb", "packet_rx_average"),
+			"Average packets received per second",
+			[]string{
+				"id",
+				"port",
+				"vip",
+			},
+			nil,
+		),
+
+		packetTX: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "slb", "packet_tx_average"),
+			"Average packets sent per second",
+			[]string{
+				"id",
+				"port",
+				"vip",
+			},
+			nil,
+		),
+
+		trafficRX: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "slb", "traffic_rx_average"),
+			"Average traffic received per second",
+			[]string{
+				"id",
+				"port",
+				"vip",
+			},
+			nil,
+		),
+
+		trafficTX: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "slb", "traffic_tx_average"),
+			"Average traffic sent per second",
+			[]string{
+				"id",
+				"port",
+				"vip",
+			},
+			nil,
+		),
+
+		newConnection: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "slb", "new_connection_average"),
+			"Average number of new connections created per second",
+			[]string{
+				"id",
+				"port",
+				"vip",
 			},
 			nil,
 		),
@@ -55,15 +142,25 @@ func NewExporter(c *cms.Client) *CloudmonitorExporter {
 // Describe describes all the metrics exported by the cloudmonitor exporter.
 // It implements prometheus.Collector.
 func (e *CloudmonitorExporter) Describe(ch chan<- *prometheus.Desc) {
+	// nat gateway
 	ch <- e.netTxRate
 	ch <- e.netTxRatePercent
 	ch <- e.snatConnections
+
+	// slb dashboard
+	ch <- e.activeConnection
+	ch <- e.packetRX
+	ch <- e.packetTX
+	ch <- e.trafficRX
+	ch <- e.trafficTX
+	ch <- e.newConnection
 }
 
 // Collect fetches the metrics from Aliyun cms
 // It implements prometheus.Collector.
 func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 	natGateway := NewNatGateway(e.client)
+	slbDashboard := NewSLBDashboard(e.client)
 
 	for _, point := range natGateway.retrieveNetTxRate() {
 		ch <- prometheus.MustNewConstMetric(
@@ -91,51 +188,70 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			point.InstanceId,
 		)
 	}
-}
 
-// datapoint represents the member of Datapoints field from QueryMetricLastResponse
-type datapoint struct {
-	Average    float64 `json:"Average"`
-	Maximum    float64 `json:"Maximum"`
-	Minimum    float64 `json:"Minimum"`
-	Value      float64 `json:"Value"`
-	InstanceId string  `json:"instanceId"`
-	Timestamp  int64   `json:"timestamp"`
-	UserId     string  `json:"userId"`
-}
-
-// GetResponseFunc returns a function to retrieve queryMetricLast
-type GetResponseFunc func(client *cms.Client, request *cms.QueryMetricLastRequest) string
-
-// Project represents the dashborad from which metrics collected
-type Project struct {
-	client      *cms.Client
-	getResponse GetResponseFunc
-	Name        string
-}
-
-func defaultGetResponseFunc(client *cms.Client, request *cms.QueryMetricLastRequest) (result string) {
-	response, err := client.QueryMetricLast(request)
-	if err != nil {
-		log.Println("Encounter response error from Aliyun:", err)
-		result = "[]"
-	}
-	result = response.Datapoints
-	return
-}
-
-func (p *Project) retrieve(metric string) []datapoint {
-	request := cms.CreateQueryMetricLastRequest()
-	request.Project = p.Name
-	request.Metric = metric
-
-	requestsStats.Inc()
-	source := p.getResponse(p.client, request)
-
-	datapoints := make([]datapoint, 10)
-	if err := json.Unmarshal([]byte(source), &datapoints); err != nil {
-		panic(err)
+	for _, point := range slbDashboard.retrieveActiveConnection() {
+		ch <- prometheus.MustNewConstMetric(
+			e.activeConnection,
+			prometheus.GaugeValue,
+			float64(point.Maximum),
+			point.InstanceId,
+			point.Port,
+			point.Vip,
+		)
 	}
 
-	return datapoints
+	for _, point := range slbDashboard.retrievePacketRX() {
+		ch <- prometheus.MustNewConstMetric(
+			e.packetRX,
+			prometheus.GaugeValue,
+			float64(point.Average),
+			point.InstanceId,
+			point.Port,
+			point.Vip,
+		)
+	}
+
+	for _, point := range slbDashboard.retrievePacketTX() {
+		ch <- prometheus.MustNewConstMetric(
+			e.packetTX,
+			prometheus.GaugeValue,
+			float64(point.Average),
+			point.InstanceId,
+			point.Port,
+			point.Vip,
+		)
+	}
+
+	for _, point := range slbDashboard.retrieveTrafficRX() {
+		ch <- prometheus.MustNewConstMetric(
+			e.trafficRX,
+			prometheus.GaugeValue,
+			float64(point.Average),
+			point.InstanceId,
+			point.Port,
+			point.Vip,
+		)
+	}
+
+	for _, point := range slbDashboard.retrieveTrafficTX() {
+		ch <- prometheus.MustNewConstMetric(
+			e.trafficTX,
+			prometheus.GaugeValue,
+			float64(point.Average),
+			point.InstanceId,
+			point.Port,
+			point.Vip,
+		)
+	}
+
+	for _, point := range slbDashboard.retrieveNewConnection() {
+		ch <- prometheus.MustNewConstMetric(
+			e.newConnection,
+			prometheus.GaugeValue,
+			float64(point.Average),
+			point.InstanceId,
+			point.Port,
+			point.Vip,
+		)
+	}
 }

@@ -10,7 +10,7 @@ func TestRetrieveSnatConn(t *testing.T) {
 	t.Log("Should retrieve maximum number of snat connections \n")
 	client := newCmsClient()
 	gw := NewNatGateway(client)
-	gw.getResponse = func(client *cms.Client, request *cms.QueryMetricLastRequest) string {
+	gw.project.getResponse = func(client *cms.Client, request *cms.QueryMetricLastRequest) string {
 		return `[
 			{
 				"timestamp":25336,
@@ -75,7 +75,7 @@ func TestRetrieveNetTxRatePercent(t *testing.T) {
 	t.Log("Should retrieve outbound of gateway used in percent\n")
 	client := newCmsClient()
 	gw := NewNatGateway(client)
-	gw.getResponse = func(client *cms.Client, request *cms.QueryMetricLastRequest) string {
+	gw.project.getResponse = func(client *cms.Client, request *cms.QueryMetricLastRequest) string {
 		return `[
 			{
 				"timestamp":1820000,
@@ -140,7 +140,7 @@ func TestRetrieveNetTxRate(t *testing.T) {
 	t.Log("Should retrieve outbound of gateway\n")
 	client := newCmsClient()
 	gw := NewNatGateway(client)
-	gw.getResponse = func(client *cms.Client, request *cms.QueryMetricLastRequest) string {
+	gw.project.getResponse = func(client *cms.Client, request *cms.QueryMetricLastRequest) string {
 		return `[
 			{
 				"timestamp":10001,

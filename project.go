@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
@@ -21,29 +22,32 @@ type datapoint struct {
 }
 
 // GetResponseFunc returns a function to retrieve queryMetricLast
-type GetResponseFunc func(client *cms.Client, request *cms.QueryMetricLastRequest) string
+type GetResponseFunc func(client *cms.Client, request *cms.DescribeMetricLastRequest) string
 
 // Project represents the dashborad from which metrics collected
 type Project struct {
 	client      *cms.Client
 	getResponse GetResponseFunc
-	Name        string
+	Namespace   string
 }
 
-func defaultGetResponseFunc(client *cms.Client, request *cms.QueryMetricLastRequest) (result string) {
-	response, err := client.QueryMetricLast(request)
+func defaultGetResponseFunc(client *cms.Client, request *cms.DescribeMetricLastRequest) (result string) {
+Loop:
+	response, err := client.DescribeMetricLast(request)
 	if err != nil {
 		log.Println("Encounter response error from Aliyun:", err)
-		result = "[]"
+		time.Sleep(time.Duration(1) * time.Minute)
+		responseError.Inc()
+		goto Loop
 	}
 	result = response.Datapoints
 	return
 }
 
 func retrieve(metric string, p Project) []datapoint {
-	request := cms.CreateQueryMetricLastRequest()
-	request.Project = p.Name
-	request.Metric = metric
+	request := cms.CreateDescribeMetricLastRequest()
+	request.Namespace = p.Namespace
+	request.MetricName = metric
 
 	requestsStats.Inc()
 	var source string

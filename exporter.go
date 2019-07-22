@@ -37,6 +37,9 @@ type CloudmonitorExporter struct {
 	upstreamCode4xx  *prometheus.Desc
 	upstreamCode5xx  *prometheus.Desc
 	upstreamRt       *prometheus.Desc
+
+	// rds dashbaord
+	cpuUsage *prometheus.Desc
 }
 
 // NewExporter instantiate an CloudmonitorExport
@@ -136,6 +139,16 @@ func NewExporter(c *cms.Client) *CloudmonitorExporter {
 			},
 			nil,
 		),
+
+		// rds dashbaord
+		cpuUsage: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "rds", "cpu_usage_average"),
+			"CPU usage per minute",
+			[]string{
+				"id",
+			},
+			nil,
+		),
 	}
 }
 
@@ -154,6 +167,9 @@ func (e *CloudmonitorExporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.trafficRX
 	ch <- e.trafficTX
 	ch <- e.newConnection
+
+	// rds dashbaord
+	ch <- e.cpuUsage
 }
 
 // Collect fetches the metrics from Aliyun cms
@@ -161,6 +177,7 @@ func (e *CloudmonitorExporter) Describe(ch chan<- *prometheus.Desc) {
 func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 	natGateway := NewNatGateway(e.client)
 	slbDashboard := NewSLBDashboard(e.client)
+	rdsDashboard := NewRDSDashboard(e.client)
 
 	for _, point := range natGateway.retrieveNetTxRate() {
 		ch <- prometheus.MustNewConstMetric(
@@ -252,6 +269,15 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			point.InstanceId,
 			point.Port,
 			point.Vip,
+		)
+	}
+
+	for _, point := range rdsDashboard.retrieveCPUUsage() {
+		ch <- prometheus.MustNewConstMetric(
+			e.cpuUsage,
+			prometheus.GaugeValue,
+			float64(point.Average),
+			point.InstanceId,
 		)
 	}
 }

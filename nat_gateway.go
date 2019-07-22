@@ -13,8 +13,8 @@ type NatGateway struct {
 func NewNatGateway(c *cms.Client) *NatGateway {
 	return &NatGateway{
 		project: Project{
-			client: c,
-			Name:   "acs_nat_gateway",
+			client:    c,
+			Namespace: "acs_nat_gateway",
 		},
 	}
 }

@@ -13,8 +13,8 @@ type SLBDashboard struct {
 func NewSLBDashboard(c *cms.Client) *SLBDashboard {
 	return &SLBDashboard{
 		project: Project{
-			client: c,
-			Name:   "acs_slb_dashboard",
+			client:    c,
+			Namespace: "acs_slb_dashboard",
 		},
 	}
 }

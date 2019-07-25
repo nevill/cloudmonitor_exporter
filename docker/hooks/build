@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# echo "current -> $PWD"
+# echo "dockerfile -> $DOCKERFILE_PATH"
+# echo "ls current"
+# ls
+# echo "ls parent"
+# ls ..
+
+docker build --build-arg GOPROXY=https://proxy.golang.org -f $DOCKERFILE_PATH -t $IMAGE_NAME ..

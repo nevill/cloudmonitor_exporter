@@ -13,10 +13,9 @@ import (
 
 // ResultResponse Ali cloud interface response field
 type ResultResponse struct {
-	PageNumber    int                                 `json:"PageNumber"`
-	TotalCount    int                                 `json:"TotalCount"`
-	PageSize      int                                 `json:"PageSize"`
-	LoadBalancers map[string][]map[string]interface{} `json:"LoadBalancers"`
+	TotalRecordCount int                                 `json:"TotalRecordCount"`
+	LoadBalancers    map[string][]map[string]interface{} `json:"LoadBalancers"`
+	Items            map[string][]map[string]interface{} `json:"Items"`
 }
 
 // WriteCache Write Cache instance information
@@ -49,7 +48,6 @@ func CacheDescriptionSLB(client *sdk.Client) {
 	request.Domain = "slb.aliyuncs.com"
 	request.Version = "2014-05-15"
 	request.ApiName = "DescribeLoadBalancers"
-	// request.QueryParams["ServerIntranetAddress"] = "10.32.12.19"
 	response, err := client.ProcessCommonRequest(request)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cache response error from Aliyun: %s\n", err)
@@ -70,11 +68,53 @@ func CacheDescriptionSLB(client *sdk.Client) {
 	}
 }
 
+// CacheDescriptionRDS Call Ali interface cache instance RDS information
+func CacheDescriptionRDS(client *sdk.Client) {
+	var (
+		pageSize   = 100
+		pageNumber = 0
+		data       = make(map[string]interface{})
+	)
+PageTurning:
+	pageNumber++
+	request := requests.NewCommonRequest()
+	request.Domain = "rds.aliyuncs.com"
+	request.Version = "2014-08-15"
+	request.ApiName = "DescribeDBInstances"
+	request.QueryParams["PageNumber"] = fmt.Sprintf("%d", pageNumber)
+	request.QueryParams["PageSize"] = "100"
+	response, err := client.ProcessCommonRequest(request)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Cache response error from Aliyun: %s\n", err)
+		// panic(err)
+	}
+	res := response.GetHttpContentString()
+
+	var result ResultResponse
+	if err := json.Unmarshal([]byte(res), &result); err == nil {
+		totalCount := result.TotalRecordCount
+		DBInstances := result.Items["DBInstance"]
+		for _, v := range DBInstances {
+			DBInstanceID := fmt.Sprintf("%v", v["DBInstanceId"])
+			data[DBInstanceID] = v["DBInstanceDescription"]
+		}
+		if totalCount > pageSize {
+			pageSize = pageSize + 100
+			goto PageTurning
+		}
+	}
+	pureRes, err := json.Marshal(data)
+	if err == nil {
+		WriteCache("/tmp/rds.cache", pureRes)
+	}
+}
+
 // timedTask 循环定时任务
 func timedTask(client *sdk.Client) {
 	go func() {
 		for {
 			CacheDescriptionSLB(client)
+			CacheDescriptionRDS(client)
 			now := time.Now()
 			// 计算下一个零点
 			next := now.Add(time.Hour * 24)

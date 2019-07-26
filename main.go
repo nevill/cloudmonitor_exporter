@@ -58,7 +58,7 @@ func init() {
 	// register metrics to Prometheus
 	prometheus.MustRegister(exporter)
 
-	// Cache instance SLB name and ID
+	// Cache instance SLB/RDS name and ID
 	timedTask(newClient())
 }
 

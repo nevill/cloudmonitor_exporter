@@ -179,6 +179,9 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 	slbDashboard := NewSLBDashboard(e.client)
 	rdsDashboard := NewRDSDashboard(e.client)
 
+	// Read SLB Instance Cache
+	SLBName := ReadCache("/tmp/slb.cache")
+
 	for _, point := range natGateway.retrieveNetTxRate() {
 		ch <- prometheus.MustNewConstMetric(
 			e.netTxRate,
@@ -211,7 +214,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.activeConnection,
 			prometheus.GaugeValue,
 			float64(point.Maximum),
-			point.InstanceId,
+			point.InstanceId+"("+SLBName[point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -222,7 +225,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.packetRX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId,
+			point.InstanceId+"("+SLBName[point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -233,7 +236,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.packetTX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId,
+			point.InstanceId+"("+SLBName[point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -244,7 +247,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.trafficRX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId,
+			point.InstanceId+"("+SLBName[point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -255,7 +258,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.trafficTX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId,
+			point.InstanceId+"("+SLBName[point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -266,7 +269,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.newConnection,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId,
+			point.InstanceId+"("+SLBName[point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)

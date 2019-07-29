@@ -62,7 +62,7 @@ func CacheDescriptionSLB(client *slb.Client) {
 	}
 	pureRes, err := json.Marshal(data)
 	if err == nil {
-		WriteCache("/tmp/slb.cache", pureRes)
+		WriteCache(slbCacheFile, pureRes)
 	}
 }
 
@@ -101,7 +101,7 @@ PageTurning:
 	}
 	pureRes, err := json.Marshal(data)
 	if err == nil {
-		WriteCache("/tmp/rds.cache", pureRes)
+		WriteCache(rdsCacheFile, pureRes)
 	}
 }
 
@@ -111,8 +111,8 @@ func timedTask(slb *slb.Client, rds *rds.Client) {
 		for {
 			CacheDescriptionSLB(slb)
 			CacheDescriptionRDS(rds)
-			slbName = ReadCache("/tmp/slb.cache")
-			rdsName = ReadCache("/tmp/rds.cache")
+			slbName = ReadCache(slbCacheFile)
+			rdsName = ReadCache(rdsCacheFile)
 			now := time.Now()
 			// 计算下一个零点
 			next := now.Add(time.Hour * 24)

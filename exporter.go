@@ -179,12 +179,6 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 	slbDashboard := NewSLBDashboard(e.client)
 	rdsDashboard := NewRDSDashboard(e.client)
 
-	// Read SLB Instance Cache
-	slbName := ReadCache("/tmp/slb.cache")
-
-	// Read RDS Instance Cache
-	rdsName := ReadCache("/tmp/rds.cache")
-
 	for _, point := range natGateway.retrieveNetTxRate() {
 		ch <- prometheus.MustNewConstMetric(
 			e.netTxRate,

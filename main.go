@@ -11,6 +11,8 @@ import (
 var (
 	config   = getConfigFromEnv()
 	exporter = NewExporter(newCmsClient())
+	slbName  = ReadCache("/tmp/slb.cache") // Read SLB Instance Cache
+	rdsName  = ReadCache("/tmp/rds.cache") // Read RDS Instance Cache
 )
 
 func start() {

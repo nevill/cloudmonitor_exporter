@@ -111,6 +111,8 @@ func timedTask(slb *slb.Client, rds *rds.Client) {
 		for {
 			CacheDescriptionSLB(slb)
 			CacheDescriptionRDS(rds)
+			slbName = ReadCache("/tmp/slb.cache")
+			rdsName = ReadCache("/tmp/rds.cache")
 			now := time.Now()
 			// 计算下一个零点
 			next := now.Add(time.Hour * 24)

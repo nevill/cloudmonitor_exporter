@@ -7,8 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 )
 
 // ResultResponse Ali cloud interface response field
@@ -42,20 +43,17 @@ func ReadCache(inputFile string) map[string]string {
 }
 
 // CacheDescriptionSLB Call Ali interface cache instance SLB information
-func CacheDescriptionSLB(client *sdk.Client) {
-	var result ResultResponse
-	request := requests.NewCommonRequest()
-	request.Domain = "slb.aliyuncs.com"
-	request.Version = "2014-05-15"
-	request.ApiName = "DescribeLoadBalancers"
-	response, err := client.ProcessCommonRequest(request)
+func CacheDescriptionSLB(client *slb.Client) {
+	request := slb.CreateDescribeLoadBalancersRequest()
+	request.Scheme = "https"
+	response, err := client.DescribeLoadBalancers(request)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cache response error from Aliyun: %s\n", err)
-		// panic(err)
+		fmt.Fprintf(os.Stderr, "Cache SLB response error from Aliyun: %s\n", err.Error())
 	}
-	res := response.GetHttpContentString()
+	contentString := response.GetHttpContentString()
 	data := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(res), &result); err == nil {
+	var result ResultResponse
+	if err := json.Unmarshal([]byte(contentString), &result); err == nil {
 		Balancer := result.LoadBalancers["LoadBalancer"]
 		for _, v := range Balancer {
 			LoadBalancerIDStr := fmt.Sprintf("%v", v["LoadBalancerId"])
@@ -69,37 +67,35 @@ func CacheDescriptionSLB(client *sdk.Client) {
 }
 
 // CacheDescriptionRDS Call Ali interface cache instance RDS information
-func CacheDescriptionRDS(client *sdk.Client) {
+func CacheDescriptionRDS(client *rds.Client) {
 	var (
-		pageSize   = 100
-		pageNumber = 0
-		data       = make(map[string]interface{})
+		num  = 0
+		size = 100
+		data = make(map[string]interface{})
 	)
 PageTurning:
-	pageNumber++
-	request := requests.NewCommonRequest()
-	request.Domain = "rds.aliyuncs.com"
-	request.Version = "2014-08-15"
-	request.ApiName = "DescribeDBInstances"
-	request.QueryParams["PageNumber"] = fmt.Sprintf("%d", pageNumber)
-	request.QueryParams["PageSize"] = "100"
-	response, err := client.ProcessCommonRequest(request)
+	num++
+	request := rds.CreateDescribeDBInstancesRequest()
+	request.Scheme = "https"
+	request.PageSize = requests.NewInteger(100)
+	request.PageNumber = requests.NewInteger(num)
+
+	response, err := client.DescribeDBInstances(request)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cache response error from Aliyun: %s\n", err)
-		// panic(err)
+		fmt.Fprintf(os.Stderr, "Cache RDS response error from Aliyun: %s\n", err.Error())
 	}
-	res := response.GetHttpContentString()
+	contentString := response.GetHttpContentString()
 
 	var result ResultResponse
-	if err := json.Unmarshal([]byte(res), &result); err == nil {
+	if err := json.Unmarshal([]byte(contentString), &result); err == nil {
 		totalCount := result.TotalRecordCount
 		DBInstances := result.Items["DBInstance"]
 		for _, v := range DBInstances {
 			DBInstanceID := fmt.Sprintf("%v", v["DBInstanceId"])
 			data[DBInstanceID] = v["DBInstanceDescription"]
 		}
-		if totalCount > pageSize {
-			pageSize = pageSize + 100
+		if totalCount > size {
+			size = size + 100
 			goto PageTurning
 		}
 	}
@@ -110,11 +106,11 @@ PageTurning:
 }
 
 // timedTask 循环定时任务
-func timedTask(client *sdk.Client) {
+func timedTask(slb *slb.Client, rds *rds.Client) {
 	go func() {
 		for {
-			CacheDescriptionSLB(client)
-			CacheDescriptionRDS(client)
+			CacheDescriptionSLB(slb)
+			CacheDescriptionRDS(rds)
 			now := time.Now()
 			// 计算下一个零点
 			next := now.Add(time.Hour * 24)

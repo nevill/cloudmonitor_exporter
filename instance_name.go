@@ -65,7 +65,9 @@ func CacheDescriptionRDS() {
 		if err := json.Unmarshal([]byte(contentString), &result); err == nil {
 			totalCount := result.TotalRecordCount
 			DBInstances := result.Items["DBInstance"]
-			cacheName["rds"] = make(map[string]string)
+			if num == 1 {
+				cacheName["rds"] = make(map[string]string)
+			}
 			for _, v := range DBInstances {
 				DBInstanceIDStr := fmt.Sprintf("%v", v["DBInstanceId"])
 				DBInstanceDescriptionStr := fmt.Sprintf("%v", v["DBInstanceDescription"])

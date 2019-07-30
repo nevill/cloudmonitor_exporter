@@ -8,16 +8,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const (
-	slbCacheFile = "/tmp/slb.cache"
-	rdsCacheFile = "/tmp/rds.cache"
-)
-
 var (
-	config   = getConfigFromEnv()
-	exporter = NewExporter(newCmsClient())
-	slbName  = ReadCache(slbCacheFile) // Read SLB Instance Cache
-	rdsName  = ReadCache(rdsCacheFile) // Read RDS Instance Cache
+	cacheName = make(map[string]map[string]string) // Cache variable
+	config    = getConfigFromEnv()
+	exporter  = NewExporter(newCmsClient())
 )
 
 func start() {
@@ -36,8 +30,8 @@ func init() {
 	// register metrics to Prometheus
 	prometheus.MustRegister(exporter)
 
-	// Write and read cache RDS name and ID to local file
-	timedTask(newSLBClient(), newRDSClient())
+	// Refresh the cache once a day
+	timedTask()
 }
 
 func main() {

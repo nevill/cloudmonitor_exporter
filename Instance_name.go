@@ -3,8 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
+	"log"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -19,100 +18,74 @@ type ResultResponse struct {
 	Items            map[string][]map[string]interface{} `json:"Items"`
 }
 
-// WriteCache Write Cache instance information
-func WriteCache(outputFile string, strContent []byte) {
-	fd, _ := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	fd.Write(strContent)
-	fd.Close()
-}
-
-// ReadCache Read Cache instance information
-func ReadCache(inputFile string) map[string]string {
-	buf, err := ioutil.ReadFile(inputFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "File Error: %s\n", err)
-		// panic(err.Error())
-	}
-	var mapResult map[string]string
-	if err := json.Unmarshal([]byte(buf), &mapResult); err != nil {
-		fmt.Fprintf(os.Stderr, "File Format Error: %s\n", err)
-		// panic(err)
-	}
-
-	return mapResult
-}
-
 // CacheDescriptionSLB Call Ali interface cache instance SLB information
-func CacheDescriptionSLB(client *slb.Client) {
+func CacheDescriptionSLB() {
+	var (
+		result ResultResponse
+		client = newSLBClient()
+	)
 	request := slb.CreateDescribeLoadBalancersRequest()
 	request.Scheme = "https"
 	response, err := client.DescribeLoadBalancers(request)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cache SLB response error from Aliyun: %s\n", err.Error())
+		log.Println("Cache SLB response error from Aliyun: ", err)
 	}
 	contentString := response.GetHttpContentString()
-	data := make(map[string]interface{})
-	var result ResultResponse
 	if err := json.Unmarshal([]byte(contentString), &result); err == nil {
 		Balancer := result.LoadBalancers["LoadBalancer"]
+		cacheName["slb"] = make(map[string]string)
 		for _, v := range Balancer {
 			LoadBalancerIDStr := fmt.Sprintf("%v", v["LoadBalancerId"])
-			data[LoadBalancerIDStr] = v["LoadBalancerName"]
+			LoadBalancerNameStr := fmt.Sprintf("%v", v["LoadBalancerName"])
+			cacheName["slb"][LoadBalancerIDStr] = LoadBalancerNameStr
 		}
-	}
-	pureRes, err := json.Marshal(data)
-	if err == nil {
-		WriteCache(slbCacheFile, pureRes)
 	}
 }
 
 // CacheDescriptionRDS Call Ali interface cache instance RDS information
-func CacheDescriptionRDS(client *rds.Client) {
+func CacheDescriptionRDS() {
 	var (
-		num  = 0
-		size = 100
-		data = make(map[string]interface{})
+		result ResultResponse
+		num    = 1
+		size   = 100
+		client = newRDSClient()
 	)
-PageTurning:
-	num++
-	request := rds.CreateDescribeDBInstancesRequest()
-	request.Scheme = "https"
-	request.PageSize = requests.NewInteger(100)
-	request.PageNumber = requests.NewInteger(num)
+	for PageTurning := true; PageTurning != false; num++ {
+		request := rds.CreateDescribeDBInstancesRequest()
+		request.Scheme = "https"
+		request.PageSize = requests.NewInteger(100)
+		request.PageNumber = requests.NewInteger(num)
 
-	response, err := client.DescribeDBInstances(request)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cache RDS response error from Aliyun: %s\n", err.Error())
-	}
-	contentString := response.GetHttpContentString()
+		response, err := client.DescribeDBInstances(request)
+		if err != nil {
+			log.Println("Cache RDS response error from Aliyun: ", err)
+		}
+		contentString := response.GetHttpContentString()
 
-	var result ResultResponse
-	if err := json.Unmarshal([]byte(contentString), &result); err == nil {
-		totalCount := result.TotalRecordCount
-		DBInstances := result.Items["DBInstance"]
-		for _, v := range DBInstances {
-			DBInstanceID := fmt.Sprintf("%v", v["DBInstanceId"])
-			data[DBInstanceID] = v["DBInstanceDescription"]
+		if err := json.Unmarshal([]byte(contentString), &result); err == nil {
+			totalCount := result.TotalRecordCount
+			DBInstances := result.Items["DBInstance"]
+			cacheName["rds"] = make(map[string]string)
+			for _, v := range DBInstances {
+				DBInstanceIDStr := fmt.Sprintf("%v", v["DBInstanceId"])
+				DBInstanceDescriptionStr := fmt.Sprintf("%v", v["DBInstanceDescription"])
+				cacheName["rds"][DBInstanceIDStr] = DBInstanceDescriptionStr
+			}
+			if totalCount > size {
+				size = size + 100
+			} else {
+				PageTurning = false
+			}
 		}
-		if totalCount > size {
-			size = size + 100
-			goto PageTurning
-		}
-	}
-	pureRes, err := json.Marshal(data)
-	if err == nil {
-		WriteCache(rdsCacheFile, pureRes)
 	}
 }
 
 // timedTask 循环定时任务
-func timedTask(slb *slb.Client, rds *rds.Client) {
+func timedTask() {
 	go func() {
 		for {
-			CacheDescriptionSLB(slb)
-			CacheDescriptionRDS(rds)
-			slbName = ReadCache(slbCacheFile)
-			rdsName = ReadCache(rdsCacheFile)
+			CacheDescriptionSLB()
+			CacheDescriptionRDS()
 			now := time.Now()
 			// 计算下一个零点
 			next := now.Add(time.Hour * 24)

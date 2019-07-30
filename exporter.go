@@ -211,7 +211,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.activeConnection,
 			prometheus.GaugeValue,
 			float64(point.Maximum),
-			point.InstanceId+"("+slbName[point.InstanceId]+")",
+			point.InstanceId+"("+cacheName["slb"][point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -222,7 +222,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.packetRX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId+"("+slbName[point.InstanceId]+")",
+			point.InstanceId+"("+cacheName["slb"][point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -233,7 +233,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.packetTX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId+"("+slbName[point.InstanceId]+")",
+			point.InstanceId+"("+cacheName["slb"][point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -244,7 +244,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.trafficRX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId+"("+slbName[point.InstanceId]+")",
+			point.InstanceId+"("+cacheName["slb"][point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -255,7 +255,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.trafficTX,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId+"("+slbName[point.InstanceId]+")",
+			point.InstanceId+"("+cacheName["slb"][point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -266,7 +266,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.newConnection,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId+"("+slbName[point.InstanceId]+")",
+			point.InstanceId+"("+cacheName["slb"][point.InstanceId]+")",
 			point.Port,
 			point.Vip,
 		)
@@ -277,7 +277,7 @@ func (e *CloudmonitorExporter) Collect(ch chan<- prometheus.Metric) {
 			e.cpuUsage,
 			prometheus.GaugeValue,
 			float64(point.Average),
-			point.InstanceId+"("+rdsName[point.InstanceId]+")",
+			point.InstanceId+"("+cacheName["rds"][point.InstanceId]+")",
 		)
 	}
 }

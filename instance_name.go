@@ -33,7 +33,6 @@ func CacheDescriptionSLB() {
 	contentString := response.GetHttpContentString()
 	if err := json.Unmarshal([]byte(contentString), &result); err == nil {
 		Balancer := result.LoadBalancers["LoadBalancer"]
-		cacheName["slb"] = make(map[string]string)
 		for _, v := range Balancer {
 			LoadBalancerIDStr := fmt.Sprintf("%v", v["LoadBalancerId"])
 			LoadBalancerNameStr := fmt.Sprintf("%v", v["LoadBalancerName"])
@@ -65,9 +64,6 @@ func CacheDescriptionRDS() {
 		if err := json.Unmarshal([]byte(contentString), &result); err == nil {
 			totalCount := result.TotalRecordCount
 			DBInstances := result.Items["DBInstance"]
-			if num == 1 {
-				cacheName["rds"] = make(map[string]string)
-			}
 			for _, v := range DBInstances {
 				DBInstanceIDStr := fmt.Sprintf("%v", v["DBInstanceId"])
 				DBInstanceDescriptionStr := fmt.Sprintf("%v", v["DBInstanceDescription"])
@@ -96,4 +92,9 @@ func timedTask() {
 			<-t.C
 		}
 	}()
+}
+
+func init() {
+	cacheName["rds"] = make(map[string]string)
+	cacheName["slb"] = make(map[string]string)
 }

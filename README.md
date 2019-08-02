@@ -6,8 +6,7 @@
 
 # Build
 ```
-go get -u github.com/aliyun/alibaba-cloud-sdk-go/sdk
-go get github.com/prometheus/client_golang/prometheus
+go get -d
 go build
 ```
 

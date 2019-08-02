@@ -4,29 +4,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
-	config   = getConfigFromEnv()
-	exporter = NewExporter(newCmsClient())
+	cacheName = make(map[string]map[string]string) // Cache variable
+	config    = getConfigFromEnv()
+	exporter  = NewExporter(newCmsClient())
 )
-
-func newCmsClient() *cms.Client {
-	cmsClient, err := cms.NewClientWithAccessKey(
-		config.Region,
-		config.AccessKeyId,
-		config.AccessKeySecret,
-	)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return cmsClient
-}
 
 func start() {
 	listenAddress := config.ListenAddress
@@ -43,6 +29,9 @@ func start() {
 func init() {
 	// register metrics to Prometheus
 	prometheus.MustRegister(exporter)
+
+	// Refresh the cache once a day
+	timedTask()
 }
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
 
-// RDSDashboard represents nat gateway dashboard
+// RDSDashboard represents the dashboard of RDS
 type RDSDashboard struct {
 	project Project
 }
@@ -21,4 +21,12 @@ func NewRDSDashboard(c *cms.Client) *RDSDashboard {
 
 func (db *RDSDashboard) retrieveCPUUsage() []datapoint {
 	return retrieve("CpuUsage", db.project)
+}
+
+func (db *RDSDashboard) retrieveConnectionUsage() []datapoint {
+	return retrieve("ConnectionUsage", db.project)
+}
+
+func (db *RDSDashboard) retrieveActiveSessions() []datapoint {
+	return retrieve("MySQL_ActiveSessions", db.project)
 }

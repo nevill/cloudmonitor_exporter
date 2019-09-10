@@ -18,6 +18,13 @@ var (
 			Help: "The total number response from Aliyun returned with error.",
 		},
 	)
+
+	responseFormatError = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "cloudmonitor_exporter_error_response_format_total",
+			Help: "The total number response from Aliyun with format error.",
+		},
+	)
 )
 
 func init() {

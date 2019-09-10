@@ -22,7 +22,7 @@ type datapoint struct {
 }
 
 // GetResponseFunc returns a function to retrieve queryMetricLast
-type GetResponseFunc func(client *cms.Client, request *cms.DescribeMetricLastRequest) string
+type GetResponseFunc func(client *cms.Client, request *cms.DescribeMetricLastRequest) (string, error)
 
 // Project represents the dashborad from which metrics collected
 type Project struct {
@@ -31,17 +31,14 @@ type Project struct {
 	Namespace   string
 }
 
-func defaultGetResponseFunc(client *cms.Client, request *cms.DescribeMetricLastRequest) (result string) {
-Loop:
+func defaultGetResponseFunc(client *cms.Client, request *cms.DescribeMetricLastRequest) (string, error) {
 	response, err := client.DescribeMetricLast(request)
 	if err != nil {
-		log.Println("Encounter response error from Aliyun:", err)
-		time.Sleep(time.Duration(1) * time.Minute)
-		responseError.Inc()
-		goto Loop
+		return nil, err
 	}
-	result = response.Datapoints
-	return
+	else {
+		return response.Datapoints, error
+	}
 }
 
 func retrieve(metric string, p Project) []datapoint {
@@ -50,16 +47,22 @@ func retrieve(metric string, p Project) []datapoint {
 	request.MetricName = metric
 
 	requestsStats.Inc()
-	var source string
-	if p.getResponse == nil {
-		source = defaultGetResponseFunc(p.client, request)
-	} else {
-		source = p.getResponse(p.client, request)
+
+	datapoints := make([]datapoint, 0)
+
+	getResponseFunc := p.getResponse
+	if getResponseFunc == nil {
+		getResponseFunc = defaultGetResponseFunc
 	}
 
-	datapoints := make([]datapoint, 10)
-	if err := json.Unmarshal([]byte(source), &datapoints); err != nil {
-		panic(err)
+	source, err := getResponseFunc(p.client, request)
+
+	if (err != nil) {
+		responseError.Inc()
+		log.Println("Encounter response error from Aliyun:", err)
+	} else if err := json.Unmarshal([]byte(source), &datapoints); err != nil {
+		responseFormatError.Inc()
+		log.Println("Cannot decode json reponse:", err)
 	}
 
 	return datapoints

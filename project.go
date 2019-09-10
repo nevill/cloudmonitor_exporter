@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 )
@@ -34,10 +33,9 @@ type Project struct {
 func defaultGetResponseFunc(client *cms.Client, request *cms.DescribeMetricLastRequest) (string, error) {
 	response, err := client.DescribeMetricLast(request)
 	if err != nil {
-		return nil, err
-	}
-	else {
-		return response.Datapoints, error
+		return "", err
+	} else {
+		return response.Datapoints, nil
 	}
 }
 

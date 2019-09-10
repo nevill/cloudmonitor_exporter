@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	cacheName = make(map[string]map[string]string) // Cache variable
 	config    = getConfigFromEnv()
 	exporter  = NewExporter(newCmsClient())
 )
@@ -29,9 +28,6 @@ func start() {
 func init() {
 	// register metrics to Prometheus
 	prometheus.MustRegister(exporter)
-
-	// Refresh the cache once a day
-	timedTask()
 }
 
 func main() {

@@ -55,7 +55,7 @@ func retrieve(metric string, p Project) []datapoint {
 
 	source, err := getResponseFunc(p.client, request)
 
-	if (err != nil) {
+	if err != nil {
 		responseError.Inc()
 		log.Println("Encounter response error from Aliyun:", err)
 	} else if err := json.Unmarshal([]byte(source), &datapoints); err != nil {

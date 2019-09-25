@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	config    = getConfigFromEnv()
-	exporter  = NewExporter(newCmsClient())
+	config   = getConfigFromEnv()
+	exporter = NewExporter(newCmsClient())
 )
 
 func start() {

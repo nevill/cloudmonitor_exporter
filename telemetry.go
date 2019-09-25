@@ -30,4 +30,5 @@ var (
 func init() {
 	prometheus.MustRegister(requestsStats)
 	prometheus.MustRegister(responseError)
+	prometheus.MustRegister(responseFormatError)
 }

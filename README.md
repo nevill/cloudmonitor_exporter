@@ -10,6 +10,10 @@ go get -d
 go build
 ```
 
+# Test
+```
+ACCESS_KEY_ID=fakeid go test
+```
 
 # API Reference
 1. https://help.aliyun.com/document_detail/28617.html

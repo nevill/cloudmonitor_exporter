@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 
@@ -9,7 +10,6 @@ import (
 )
 
 var (
-	config   = getConfigFromEnv()
 	exporter = NewExporter(newCmsClient())
 )
 
@@ -31,5 +31,6 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
 	start()
 }

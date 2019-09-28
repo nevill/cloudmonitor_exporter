@@ -12,7 +12,12 @@ go build
 
 # Test
 ```
-ACCESS_KEY_ID=fakeid go test
+go test
+```
+
+# Run
+```
+./cloudmonitor_exporter -id access_id -secret access_secret -region cn-hangzhou
 ```
 
 # API Reference

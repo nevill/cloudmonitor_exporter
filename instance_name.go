@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
 )
 
-var cacheName = make(map[string]map[string]string)
+var cacheName = map[string]map[string]string{
+	"rds": map[string]string{},
+	"slb": map[string]string{},
+}
 
 // ResultResponse Ali cloud interface response field
 type ResultResponse struct {
@@ -78,26 +80,4 @@ func CacheDescriptionRDS() {
 			}
 		}
 	}
-}
-
-// timedTask 循环定时任务
-func timedTask() {
-	for {
-		CacheDescriptionSLB()
-		CacheDescriptionRDS()
-		now := time.Now()
-		// 计算下一个零点
-		next := now.Add(time.Hour * 24)
-		next = time.Date(next.Year(), next.Month(), next.Day(), 0, 10, 0, 0, next.Location())
-		t := time.NewTimer(next.Sub(now))
-		<-t.C
-	}
-}
-
-func init() {
-	cacheName["rds"] = make(map[string]string)
-	cacheName["slb"] = make(map[string]string)
-
-	// Refresh the cache once a day
-	go timedTask()
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"time"
@@ -18,18 +19,6 @@ var config = struct {
 	ListenAddress   string
 }{}
 
-func start() {
-	exporter := NewExporter(newCmsClient())
-	prometheus.MustRegister(exporter)
-
-	listenAddress := config.ListenAddress
-
-	log.Println("Running on ", listenAddress)
-
-	http.Handle("/metrics", promhttp.Handler())
-	log.Fatal(http.ListenAndServe(listenAddress, nil))
-}
-
 func main() {
 	flag.StringVar(&(config.AccessKeyId), "id", os.Getenv("ACCESS_KEY_ID"), "Access key ID")
 	flag.StringVar(&(config.AccessKeySecret), "secret", os.Getenv("ACCESS_KEY_SECRET"), "Access key secret")
@@ -37,20 +26,25 @@ func main() {
 	flag.StringVar(&(config.ListenAddress), "listenaddress", ":8080", "The address it will listen on")
 	flag.Parse()
 
-	go timedTask()
-	start()
-}
-
-// timedTask 循环定时任务
-func timedTask() {
-	for {
-		CacheDescriptionSLB()
-		CacheDescriptionRDS()
-		now := time.Now()
-		// 计算下一个零点
-		next := now.Add(time.Hour * 24)
-		next = time.Date(next.Year(), next.Month(), next.Day(), 0, 10, 0, 0, next.Location())
-		t := time.NewTimer(next.Sub(now))
-		<-t.C
+	startAt := time.Now()
+	dangledPeriod := func() float64 {
+		return 60 + 2 + math.Sin(float64(time.Since(startAt) / (10 * time.Minute)))
 	}
+
+	go func() {
+		for {
+			collectSLBInfo()
+			collectRDSInfo()
+			time.Sleep(time.Duration(dangledPeriod()) * time.Minute)
+		}
+	}()
+
+	exporter := NewExporter(newCmsClient())
+	prometheus.MustRegister(instance_info, exporter)
+
+	// serve on /metrics
+	listenAddress := config.ListenAddress
+	log.Println("Running on ", listenAddress)
+	http.Handle("/metrics", promhttp.Handler())
+	log.Fatal(http.ListenAndServe(listenAddress, nil))
 }

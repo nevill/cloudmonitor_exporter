@@ -1,83 +1,45 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-var cacheName = map[string]map[string]string{
-	"rds": map[string]string{},
-	"slb": map[string]string{},
-}
+var instance_info = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "cloudmonitor_instance_info",
+		Help: "A metric with a constant '1' value labeled by service, id, name.",
+	},
+	[]string{"service", "id", "name"},
+)
 
-// ResultResponse Ali cloud interface response field
-type ResultResponse struct {
-	TotalRecordCount int                                 `json:"TotalRecordCount"`
-	LoadBalancers    map[string][]map[string]interface{} `json:"LoadBalancers"`
-	Items            map[string][]map[string]interface{} `json:"Items"`
-}
-
-// CacheDescriptionSLB Call Ali interface cache instance SLB information
-func CacheDescriptionSLB() {
-	var (
-		result ResultResponse
-		client = newSLBClient()
-	)
+func collectSLBInfo() {
+	client := newSLBClient()
 	request := slb.CreateDescribeLoadBalancersRequest()
 	request.Scheme = "https"
 	response, err := client.DescribeLoadBalancers(request)
 	if err != nil {
-		log.Println("Cache SLB response error from Aliyun: ", err)
-	}
-	contentString := response.GetHttpContentString()
-	if err := json.Unmarshal([]byte(contentString), &result); err == nil {
-		Balancer := result.LoadBalancers["LoadBalancer"]
-		for _, v := range Balancer {
-			LoadBalancerIDStr := fmt.Sprintf("%v", v["LoadBalancerId"])
-			LoadBalancerNameStr := fmt.Sprintf("%v", v["LoadBalancerName"])
-			cacheName["slb"][LoadBalancerIDStr] = LoadBalancerNameStr
+		log.Println("Get SLB response error: ", err)
+	} else {
+		for _, lb := range response.LoadBalancers.LoadBalancer {
+			instance_info.WithLabelValues("slb", lb.LoadBalancerId, lb.LoadBalancerName).Set(1)
 		}
 	}
 }
 
-// CacheDescriptionRDS Call Ali interface cache instance RDS information
-func CacheDescriptionRDS() {
-	var (
-		result ResultResponse
-		num    = 1
-		size   = 100
-		client = newRDSClient()
-	)
-	for PageTurning := true; PageTurning != false; num++ {
-		request := rds.CreateDescribeDBInstancesRequest()
-		request.Scheme = "https"
-		request.PageSize = requests.NewInteger(100)
-		request.PageNumber = requests.NewInteger(num)
-
-		response, err := client.DescribeDBInstances(request)
-		if err != nil {
-			log.Println("Cache RDS response error from Aliyun: ", err)
-		}
-		contentString := response.GetHttpContentString()
-
-		if err := json.Unmarshal([]byte(contentString), &result); err == nil {
-			totalCount := result.TotalRecordCount
-			DBInstances := result.Items["DBInstance"]
-			for _, v := range DBInstances {
-				DBInstanceIDStr := fmt.Sprintf("%v", v["DBInstanceId"])
-				DBInstanceDescriptionStr := fmt.Sprintf("%v", v["DBInstanceDescription"])
-				cacheName["rds"][DBInstanceIDStr] = DBInstanceDescriptionStr
-			}
-			if totalCount > size {
-				size = size + 100
-			} else {
-				PageTurning = false
-			}
+func collectRDSInfo() {
+	client := newRDSClient()
+	request := rds.CreateDescribeDBInstancesRequest()
+	request.Scheme = "https"
+	response, err := client.DescribeDBInstances(request)
+	if err != nil {
+		log.Println("Get RDS response error: ", err)
+	} else {
+		for _, db := range response.Items.DBInstance {
+			instance_info.WithLabelValues("rds", db.DBInstanceId, "").Set(1)
 		}
 	}
 }

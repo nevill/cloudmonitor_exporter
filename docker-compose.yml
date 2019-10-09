@@ -1,0 +1,32 @@
+version: '2.1'
+
+services:
+  cloudmonitor:
+    image: nevill/cloudmonitor_exporter:latest
+    env_file: .credential
+    command: "/bin/cloudmonitor_exporter -listenaddress 0.0.0.0:8090"
+    ports:
+      - "8090:8090"
+    restart: on-failure
+
+  prometheus:
+    user: root
+    image: prom/prometheus:v2.13.0
+    command:
+      # - --log.level=error
+      - --storage.tsdb.path=/data/prometheus
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: on-failure
+
+  grafana:
+    image: grafana/grafana:6.4.2
+    environment:
+      - GF_SERVER_ROOT_URL=http://localhost"
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    ports:
+      - "3000:3000"
+    restart: on-failure

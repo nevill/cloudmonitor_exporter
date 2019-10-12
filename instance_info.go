@@ -39,7 +39,8 @@ func collectRDSInfo() {
 		log.Println("Get RDS response error: ", err)
 	} else {
 		for _, db := range response.Items.DBInstance {
-			instance_info.WithLabelValues("rds", db.DBInstanceId, "").Set(1)
+			//TODO can define which field will be set as name in Config file
+			instance_info.WithLabelValues("rds", db.DBInstanceId, db.DBInstanceDescription).Set(1)
 		}
 	}
 }

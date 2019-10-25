@@ -24,6 +24,9 @@ or by Docker
 docker-compose up
 ```
 
+# Work with Grafna
+<img src="assets/cloudmonitor.png">
+
 # API Reference
 1. https://help.aliyun.com/document_detail/51939.html
 2. https://help.aliyun.com/document_detail/27582.html

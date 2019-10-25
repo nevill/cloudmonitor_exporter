@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/cms"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
@@ -30,7 +27,7 @@ func newSLBClient() *slb.Client {
 		config.AccessKeySecret,
 	)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Create SLB Client error from Aliyun: %s\n", err)
+		panic(err)
 	}
 
 	return client
@@ -43,7 +40,7 @@ func newRDSClient() *rds.Client {
 		config.AccessKeySecret,
 	)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Create RDS Client error from Aliyun: %s\n", err)
+		panic(err)
 	}
 
 	return client
